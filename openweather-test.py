@@ -1,12 +1,12 @@
 import requests
+import os
 
+app_id = os.getenv('APP_ID')
 
 while True:
     print('city ?')
-    city = input()
-    
-    # url = 'http://api.openweathermap.org/data/2.5/weather?appid=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&q=minsk'
-    url = 'http://api.openweathermap.org/data/2.5/weather?appid=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&' + 'q=' + city
+    city = input()   
+    url = 'http://api.openweathermap.org/data/2.5/weather?appid=' + app_id + '&q=' + city
     response = requests.get(url)
     r = response.json()
     
