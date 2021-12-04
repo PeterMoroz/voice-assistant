@@ -4,9 +4,14 @@ import requests
 import datetime
 import wikipedia
 
+from configparser import ConfigParser
+
 recognizer = sr.Recognizer()
 engine = pyttsx3.init()
 engine.setProperty('rate', 120)
+
+config = ConfigParser()
+config.read('voice-assistant.ini')
 
 
 def speak(text):
@@ -82,11 +87,16 @@ def run_assistant():
         print(f"The Wikipedia tells about {thing}:\n")
         print(info)
         speak(info)
+    elif 'search' in cmd:
+        speak('Searching the wikipedia, please wait.')
+        thing = cmd.replace('search', '')
+        info = wikipedia.summary(thing, 3)
+        print(f"The Wikipedia tells about {thing}:\n")
+        print(info)
+        speak(info)
     elif 'who are you' in cmd:
         speak('I am your personal assistant')
     elif 'weather' in cmd:
-        BASE_URL = 'http://api.openweathermap.org/data/2.5/weather'
-        APP_ID = 'appid=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
         speak('what is the city interested you ?')
         city = listen()
         repeat_count = 0
@@ -99,10 +109,11 @@ def run_assistant():
         if city == '':
             speak("I'm sorry, I don't understand you.")
             return
-        
+
+        BASE_URL = 'http://api.openweathermap.org/data/2.5/weather'
+        app_id = config.get('openweather', 'app_id')
         speak('Requesting the weather, please wait.')
-        url = BASE_URL + '?' + APP_ID + '&q=' + city
-        # url = 'http://api.openweathermap.org/data/2.5/weather?appid=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&q=minsk'
+        url = BASE_URL + '?appid=' + app_id + '&q=' + city
         response = requests.get(url)
         r = response.json()
         text = get_the_weather_sentence(r)
