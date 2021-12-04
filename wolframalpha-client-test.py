@@ -1,6 +1,10 @@
 import wolframalpha
 
-client = wolframalpha.Client('######-##########')
+import os
+
+app_id = os.getenv('APP_ID')
+
+client = wolframalpha.Client(app_id)
 query = 'calculate 5 + 3'
 print('query: ' + str(query))
 idx = query.lower().split().index('calculate')
