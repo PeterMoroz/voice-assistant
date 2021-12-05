@@ -89,12 +89,14 @@ def wolfram_alpha_query(q=''):
 
     response = requests.get(query_url)
     if response == None:
-        print(f"No response to '{q}'\n")
+        print('No response')
         # speak('No response from knowledges base')
+        return
+    if response.status_code != 200:
+        print(response)
         return
     
     r = response.json().get('queryresult', {})
-    print('response:\n' + str(r))
     if r['error']:
     	print('Error in response')
     	return
@@ -136,39 +138,130 @@ def wolfram_alpha_solve(q=''):
                 
     response = requests.get(query_url)
     if response == None:
-        print(f"No response to '{q}'\n")
+        print('No response')
         # speak('No response from solver')
         return
+    if response.status_code != 200:
+        print(response)
+        return    
     
     r = response.json().get('queryresult', {})
-    print('response:\n' + str(r))
-    if r['success'] and not r['error']:
-        pod0 = r['pods'][0]
-        if ((pod0.get('title', '').lower() == 'result') and (pod0.get('numsubpods', 0) > 0) and not (pod0.get('error', False))):
-            subpods = pod0['subpods'] 
-            answer = subpods[0].get('plaintext', '')
-            print(f"answer to '{q}' is {answer}\n")
-        else:
-            print(f"Could not solve '{q}'\n")
-            # speak('Could not solve.')
+    if r['error']:
+    	print('Error in response')
+    	return
+
+    if not r['success']:
+    	print('Could not get answer')
+    	return
+    
+    pod = r['pods'][0]
+    if ((pod.get('title', '').lower() == 'result') and (pod.get('numsubpods', 0) > 0) and not (pod.get('error', False))):
+        subpods = pod['subpods'] 
+        answer = subpods[0].get('plaintext', '')
+        print(f"answer to '{q}' is {answer}\n")
+    else:
+        print(f"Could not solve '{q}'\n")
+        # speak('Could not solve.')
     
 def wolfram_alpha_ask(q=''):
     app_id = config.get('wolframalpha', 'app_id')
     query_url = f"http://api.wolframalpha.com/v1/spoken?appid={app_id}&i={q}"
-    response = requests.get(query_url)
-    if response != None:
-        text = response.text
-        print(f"answer to '{q}' is:\n{text}")
-        speak(text)
-    else:
+    response = requests.get(query_url)    
+    if response == None:
         print('No response')
-        speak('No response')
+        return
+    if response.status_code != 200:
+        print(response)
+        return
+
+    text = response.text
+    print(f"answer to '{q}' is:\n{text}")
+    speak(text)
         
-# def wolfram_alpha_conversation():
-    
+def wolfram_alpha_conversation():   
+    print('start conversation...\n')
+    speak('Ask your question')
+    question = listen()
+    if question == None:
+        speak('Exit conversation mode')
+        return
+    if question == '':
+        speak("I'm sorry, I didn't catch that.")
+        speak('Exit conversation mode')
+        return
+        
+    print(f"Question: {question}\n")
+    app_id = config.get('wolframalpha', 'app_id')    
+    query_url = f"http://api.wolframalpha.com/v1/conversation.jsp?appid={app_id}&i={question}"
+
+    response = requests.get(query_url)
+    if response == None:
+        print('No response')
+        speak('Exit conversation mode')
+        return
+    if response.status_code != 200:
+        print(response)
+        speak('Exit conversation mode')
+        return
+        
+    r = response.json()
+    if 'error' in r:
+        print('Error: ' + r['error'] + '\n')
+        speak('Exit conversation mode')
+        return
+    if not 'result' in r:
+        print('No result in response.\n')
+        speak('Exit conversation mode')
+        return
+
+    answer = r['result']
+    conversation_id = r['conversationID']
+    print(f"Answer: {answer}\n")
+    speak(answer)
+    while True:
+        question = listen()
+        if question == None:
+            speak('Exit conversation mode')
+            return
+        if question == '':
+            speak("I'm sorry, I didn't catch that.")
+            speak('Exit conversation mode')
+            return
+            
+        if question == 'stop convesation' or question == 'finish conversation' or question == 'break conversation' or question == 'exit conversation':
+            speak('Exit conversation mode')
+            return
+
+        print(f"Question: {question}\n")
+        query_url = f"http://api.wolframalpha.com/v1/conversation.jsp?" \
+                    f"appid={app_id}&conversationID={conversation_id}&i={question}"
+        response = requests.get(query_url)
+        if response == None:
+            print('No response')
+            speak('Exit conversation mode')
+            return
+        if response.status_code != 200:
+            print(response)
+            speak('Exit conversation mode')
+            return
+
+        r = response.json()
+        if 'error' in r:
+            print('Error: ' + r['error'] + '\n')
+            speak('Exit conversation mode')
+            return
+        if not 'result' in r:
+            print('No result in response.\n')
+            speak('Exit conversation mode')
+            return
+
+        answer = r['result']
+        conversation_id = r['conversationID']
+        print(f"Answer: {answer}\n")
+        speak(answer)
         
 def run_assistant():
-    cmd = listen()    
+    cmd = listen()
     if cmd == None:
         return
     if cmd == '':
