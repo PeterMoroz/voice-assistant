@@ -9,6 +9,9 @@ from pprint import pprint
 
 from configparser import ConfigParser
 
+import logging, os
+from logging.handlers import RotatingFileHandler
+
 recognizer = sr.Recognizer()
 engine = pyttsx3.init()
 engine.setProperty('rate', 120)
@@ -16,6 +19,14 @@ engine.setProperty('rate', 120)
 config = ConfigParser()
 config.read('voice-assistant.ini')
 
+
+logger = logging.getLogger(__name__)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+output_file = '/tmp/voice-assistant.log'
+handler = RotatingFileHandler(output_file, maxBytes=1024 * 512, backupCount=8)
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 def speak(text):
     engine.say(text)
@@ -37,20 +48,22 @@ def listen():
         with sr.Microphone(device_index=0) as mic:
             recognizer.adjust_for_ambient_noise(mic)
             print('listening ...')
+            logger.info('listening ...')
             recognizer.pause_threshold = 0.7
             voice = recognizer.listen(mic)
             print('recognizing ...')
+            logger.info('recognizing ...')
             text = recognizer.recognize_google(voice)
             text = text.lower()
             print(f"user said: {text}\n")
-    except sr.UnknownValueError:
-        print('Google speech recognition could not understand audio')
+    except sr.UnknownValueError as e:
+        print('Google speech recognition could not understand audio: ' + str(e))
         return ''
     except sr.RequestError as e:
-        print("Could not request results from Google Speech Recognition service; " + str(e))
+        print('Could not request results from Google Speech Recognition service: ' + str(e))
         return None
     except Exception as e:
-        print("Exception: " + str(e))
+        print('Exception: ' + str(e))
         return None
     return text
     
